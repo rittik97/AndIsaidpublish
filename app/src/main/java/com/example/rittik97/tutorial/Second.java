@@ -3,9 +3,7 @@ package com.example.rittik97.tutorial;
 
 import android.os.Bundle;
 import android.app.Fragment;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
+
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -15,6 +13,8 @@ import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+
 
 
 /**
@@ -40,19 +40,20 @@ public class Second extends SupportMapFragment{
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-       GoogleMap map= getMap();
-        map.getUiSettings().setZoomControlsEnabled(true);
-        MarkerOptions mo =new MarkerOptions();
-        mo.title("Title");
-        mo.position(new LatLng(40,-3));
-        mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher));
 
-        map.setMyLocationEnabled(true);
-        map.addMarker(mo);
+
+            GoogleMap map = getMap();
+            map.getUiSettings().setZoomControlsEnabled(true);
+            MarkerOptions mo = new MarkerOptions();
+            mo.title("Title");
+            mo.position(new LatLng(40, -3));
+            mo.icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_launcher));
+
+            map.setMyLocationEnabled(true);
+            map.addMarker(mo);
+
+
+        }
 
 
     }
-
-
-
-}

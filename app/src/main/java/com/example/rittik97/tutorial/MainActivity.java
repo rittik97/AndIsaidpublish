@@ -40,8 +40,10 @@ public class MainActivity extends FragmentActivity {
             public Fragment getItem(int position) {
                 if(position == 0)
                     return new NewFragment();
-                else
+                else if (position==1)
                     return new Second();
+                else
+                    return new Directions();//
 
 
 
@@ -49,15 +51,17 @@ public class MainActivity extends FragmentActivity {
 
             @Override
             public int getCount() {
-                return 2;
+                return 3;
             }
 
         @Override
         public CharSequence getPageTitle(int position) {
           if(position == 0)
             return "List";
-         else
+         else if(position == 1)
            return "Map";
+         else
+              return "Directions";
         }
 
     }
