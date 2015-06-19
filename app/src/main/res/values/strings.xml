@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Tutorial</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_main">MainActivity</string>
+
+<!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="str">Something will come here</string>
+    <string name="title_activity_map_pane">MapPane</string>
+    <string name="From">From</string>
+    <string name="place_details">place_details</string>
+</resources>
