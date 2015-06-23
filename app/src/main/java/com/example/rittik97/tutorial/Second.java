@@ -41,7 +41,7 @@ public class Second extends SupportMapFragment{
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-
+        System.out.print("HI");
             GoogleMap map = getMap();
             map.getUiSettings().setZoomControlsEnabled(true);
             MarkerOptions mo = new MarkerOptions();
