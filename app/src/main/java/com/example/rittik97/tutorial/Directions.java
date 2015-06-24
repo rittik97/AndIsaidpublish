@@ -17,10 +17,13 @@ import android.widget.Toast;
 import com.example.android.common.logger.Log;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.model.LatLng;
+//import com.google.android.gms.location.LocationClient;
 
-import org.apache.http.util.ByteArrayBuffer;
+
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -34,20 +37,29 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.text.DateFormat;
+import java.util.Date;
 
 
 /**
  * A simple {@link Fragment} subclass.
  */
 public class Directions extends android.support.v4.app.Fragment implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener {
 
-    private static final String TAG = "MyActivity";
+    private GoogleApiClient mGoogleApiClient;
+
+    private static final String TAG = "Logging this";
+    private LocationRequest mLocationRequest;
+    private Location mCurrentLocation;
+    private TextView tv23;
+    private TextView tv2;
+
     public Directions() {
         // Required empty public constructor
     }
 
-
+    
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -63,16 +75,14 @@ public class Directions extends android.support.v4.app.Fragment implements
         View vw=inflater.inflate(R.layout.fragment_directions, container, false);
         URL url;
         HttpURLConnection urlConnection;
+
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
         StrictMode.setThreadPolicy(policy);
-        TextView tv23= (TextView) vw.findViewById(R.id.tr);
+        tv23= (TextView) vw.findViewById(R.id.tr);
+        tv2= (TextView) vw.findViewById(R.id.textView2);
 
-        try {
 
-
-        } catch (Exception e) {
-        }
         JSONObject objr;
         try {
 
@@ -82,7 +92,6 @@ public class Directions extends android.support.v4.app.Fragment implements
             urlConnection.connect();
 
             InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-            tv23.setText("rt");
             //Toast.makeText(getActivity(),"Point",Toast.LENGTH_SHORT).show();
             //readStream(in);
             BufferedReader streamReader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
@@ -94,8 +103,8 @@ public class Directions extends android.support.v4.app.Fragment implements
             objr=new JSONObject(responseStrBuilder.toString());
             Log.i(TAG,objr.toString());
 
-            tv23.setText(objr.toString());
-            System.out.print("HI");
+            //tv23.setText(objr.toString());
+
 
 
 
@@ -122,6 +131,7 @@ public class Directions extends android.support.v4.app.Fragment implements
             AlertDialog dialog = builder.create();
             dialog.show();
         }
+
         /*finally{
                 urlConnection.disconnect();
             }
@@ -161,20 +171,47 @@ public class Directions extends android.support.v4.app.Fragment implements
             Log.e("DEBUG: ", e.toString());
         }
         */
+        try {
+            buildGoogleApiClient();
+            createLocationRequest();
+            startLocationUpdates();
+        }catch (Exception e)
+        {
+            StringWriter errors = new StringWriter();
+            e.printStackTrace(new PrintWriter(errors));
+
+            // Show the stack trace on Logcat.
+            AlertDialog.Builder builder = new AlertDialog.Builder(this.getActivity());
+            // Add the buttons
+            builder.setMessage(errors.toString());
+            // Set other dialog properties
+
+            // Create the AlertDialog
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
         return vw;
     }
 
 
-    @Override
-    public void onConnected(Bundle bundle) {
-        GoogleApiClient mGoogleApiClient=new GoogleApiClient.Builder(this.getActivity())
+    protected synchronized void buildGoogleApiClient() {
+        Log.i(TAG, "Building GoogleApiClient");
+        mGoogleApiClient = new GoogleApiClient.Builder(this.getActivity())
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
                 .build();
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+
         Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
-        if(mLastLocation!=null){}
+        if(mLastLocation!=null){tv2.setText(mLastLocation.toString());}
+
+        createLocationRequest();
+        startLocationUpdates();
     }
 
     @Override
@@ -185,5 +222,30 @@ public class Directions extends android.support.v4.app.Fragment implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
 
+    }
+    protected void startLocationUpdates() {
+        LocationServices.FusedLocationApi.requestLocationUpdates(
+                mGoogleApiClient, mLocationRequest, this);
+    }
+    protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(3000);
+        mLocationRequest.setFastestInterval(1000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Location mCurrentLocation = location;
+        tv23.setText("Started");
+        //updateUI();
+        //Date mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+
+    }
+    private void updateUI() {
+
+        //mLongitudeTextView.setTxext(String.valueOf(mCurrentLocation.getLongitude()));
+       // tv23.setText(mLastUpdateTime);
     }
 }

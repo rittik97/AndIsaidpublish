@@ -6,8 +6,15 @@
     <TextView
         android:id="@+id/tr"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="50dp"
         android:text="@string/hello_blank_fragment"
-        />
+        android:layout_gravity="left|top" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text="New Text"
+        android:id="@+id/textView2"
+        android:layout_gravity="left|center_vertical" />
 
 </FrameLayout>
