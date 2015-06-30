@@ -59,7 +59,7 @@ public class Directions extends android.support.v4.app.Fragment implements
         // Required empty public constructor
     }
 
-    
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
