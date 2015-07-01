@@ -31,7 +31,7 @@ public class SplashActivity extends Activity {
             }
         };
         Handler hr= new Handler();
-        hr.postDelayed(execute,3000);
+        hr.postDelayed(execute,1000);
     }
     //new Handler().postDelayed(new Runnable(){ public void run() {
 

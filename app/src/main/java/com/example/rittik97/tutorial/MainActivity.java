@@ -26,9 +26,15 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -41,10 +47,12 @@ import java.io.StringWriter;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MainActivity extends FragmentActivity implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener,OnMapReadyCallback {
 
     private GoogleApiClient mGoogleApiClient;
 
@@ -53,15 +61,28 @@ public class MainActivity extends FragmentActivity implements
     private Location mCurrentLocation;
     private TextView tv23;
     private TextView tv2;
+    private PolylineOptions polylineOptions=null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         buildGoogleApiClient();
 
+
+        setContentView(R.layout.activity_main);
+        //ViewPager vp = (ViewPager) findViewById(R.id.pager);
+        //FragmentManager fm=getSupportFragmentManager();
+        //vp.setAdapter(new adapt((fm)));
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.map);
+        GoogleMap map = mapFragment.getMap();//getMapAsync(this)
+
+    }
+    public void startclick(){
         LatLng fromPosition = new LatLng(40.798506, -73.964577);
         LatLng toPosition = new LatLng(40.8079639, -73.9630146);
 
-        // String urltext = "http://maps.googleapis.com/maps/api/directions/xml?origin=13.687140112679154,100.53525868803263&destination=(13.683660045847258,100.53900808095932&sensor=false&units=metric&mode=driving";
+        // String urltext = "http://maps.googleapis.com/maps/api/directions/xml?origin=40.798506,-73.964577&destination=(40.8079639,-73.9630146&sensor=false&units=metric&mode=driving";
         String urltext = "http://maps.googleapis.com/maps/api/directions/json?"
                 + "origin=" + fromPosition.latitude + "," + fromPosition.longitude
                 + "&destination=" + toPosition.latitude + "," + toPosition.longitude
@@ -74,8 +95,8 @@ public class MainActivity extends FragmentActivity implements
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
         StrictMode.setThreadPolicy(policy);
-        tv23= (TextView) findViewById(R.id.tr);
-        tv2= (TextView) findViewById(R.id.textView2);
+        tv23= (TextView) findViewById(R.id.tv1);
+        //tv2= (TextView) findViewById(R.id.textView2);
 
 
         JSONObject objr;
@@ -97,9 +118,27 @@ public class MainActivity extends FragmentActivity implements
                 responseStrBuilder.append(inputStr);
             objr=new JSONObject(responseStrBuilder.toString());
             Log.i(TAG, objr.toString());
+            JSONArray routeObject = objr.getJSONArray("routes");
+            JSONObject routes = routeObject.getJSONObject(0);
+            JSONObject overviewPolylines = routes
+                    .getJSONObject("overview_polyline");
+            String encodedString = overviewPolylines.getString("points");
+            // JSONObject jsonArray=objr.getJSONObject("overview_polyline");
+            //String points=jsonArray.getJSONObject(0.getString("points");
+            Toast.makeText(this,encodedString,Toast.LENGTH_LONG).show();
 
             //tv23.setText(objr.toString());
+            List<LatLng> list = decodePoly(encodedString);
 
+            ArrayList<LatLng> points = null;
+            for(int i=0;i<list.size();i++)
+            {
+
+                try{points.add(list.get(i));}
+                catch(Exception e){Toast.makeText(this,encodedString,Toast.LENGTH_LONG).show();}
+
+            }
+            polylineOptions.addAll(points);
 
 
 
@@ -126,20 +165,7 @@ public class MainActivity extends FragmentActivity implements
             AlertDialog dialog = builder.create();
             dialog.show();
         }
-
-
-
-
-
-
-
-
-        setContentView(R.layout.activity_main);
-        //ViewPager vp = (ViewPager) findViewById(R.id.pager);
-        //FragmentManager fm=getSupportFragmentManager();
-        //vp.setAdapter(new adapt((fm)));
     }
-
 
     protected synchronized void buildGoogleApiClient() {
         Log.i(TAG, "Building GoogleApiClient");
@@ -232,6 +258,49 @@ public class MainActivity extends FragmentActivity implements
             dialog.show();
         }
 
+    }
+    @Override
+    public void onMapReady(GoogleMap map) {
+        // Add a marker in Sydney, Australia, and move the camera.
+        LatLng sydney = new LatLng(-34, 151);
+        map.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
+       // map.moveCamera(CameraUpdateFactory.newLatLng(sydney), 10);
+        map.setMyLocationEnabled(true);
+
+
+    }
+    private List<LatLng> decodePoly(String encoded) {
+
+        List<LatLng> poly = new ArrayList<LatLng>();
+        int index = 0, len = encoded.length();
+        int lat = 0, lng = 0;
+
+        while (index < len) {
+            int b, shift = 0, result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lat += dlat;
+
+            shift = 0;
+            result = 0;
+            do {
+                b = encoded.charAt(index++) - 63;
+                result |= (b & 0x1f) << shift;
+                shift += 5;
+            } while (b >= 0x20);
+            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+            lng += dlng;
+
+            LatLng p = new LatLng((((double) lat / 1E5)),
+                    (((double) lng / 1E5)));
+            poly.add(p);
+        }
+
+        return poly;
     }
 
     public static class adapt extends FragmentPagerAdapter{
