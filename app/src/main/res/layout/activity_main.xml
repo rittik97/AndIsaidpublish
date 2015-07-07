@@ -72,7 +72,7 @@
             android:layout_height="wrap_content"
             android:text="Start"
             android:id="@+id/start"
-            android:onClick="startclick()" />
+            android:onClick="startclick" />
 
 
         </LinearLayout>

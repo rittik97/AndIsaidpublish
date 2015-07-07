@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.location.Location;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.StrictMode;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
@@ -48,6 +49,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 
@@ -62,7 +64,7 @@ public class MainActivity extends FragmentActivity implements
     private TextView tv23;
     private TextView tv2;
     private PolylineOptions polylineOptions=null;
-
+    private GoogleMap map;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,10 +77,20 @@ public class MainActivity extends FragmentActivity implements
         //vp.setAdapter(new adapt((fm)));
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        GoogleMap map = mapFragment.getMap();//getMapAsync(this)
+        map = mapFragment.getMap();//getMapAsync(this)
+        map.setMyLocationEnabled(true);
+        map.getUiSettings().setZoomControlsEnabled(true);
 
     }
-    public void startclick(){
+    private class Direct extends AsyncTask{
+
+        @Override
+        protected Object doInBackground(Object[] params) {
+            return null;
+        }
+    }
+    public void startclick(View v){
+
         LatLng fromPosition = new LatLng(40.798506, -73.964577);
         LatLng toPosition = new LatLng(40.8079639, -73.9630146);
 
@@ -95,7 +107,7 @@ public class MainActivity extends FragmentActivity implements
         StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
         StrictMode.setThreadPolicy(policy);
-        tv23= (TextView) findViewById(R.id.tv1);
+        //tv23= (TextView) findViewById(R.id.tv1);
         //tv2= (TextView) findViewById(R.id.textView2);
 
 
@@ -129,16 +141,24 @@ public class MainActivity extends FragmentActivity implements
 
             //tv23.setText(objr.toString());
             List<LatLng> list = decodePoly(encodedString);
+            Toast.makeText(this,list.toString(),Toast.LENGTH_LONG).show();
+            ArrayList<LatLng> points = new ArrayList<LatLng>();
 
-            ArrayList<LatLng> points = null;
             for(int i=0;i<list.size();i++)
             {
 
-                try{points.add(list.get(i));}
-                catch(Exception e){Toast.makeText(this,encodedString,Toast.LENGTH_LONG).show();}
+                try{
+
+                    double lat = (list.get(i).latitude);
+                    double lng = (list.get(i).longitude);
+                    LatLng position = new LatLng(lat, lng);
+
+                    points.add(position);}
+                catch(Exception e){Toast.makeText(this,"Chut",Toast.LENGTH_LONG).show();}
 
             }
             polylineOptions.addAll(points);
+            map.addPolyline(polylineOptions);
 
 
 
@@ -215,7 +235,7 @@ public class MainActivity extends FragmentActivity implements
     @Override
     public void onLocationChanged(Location location) {
         Location mCurrentLocation = location;
-        Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
 
         //updateUI();
         //Date mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
@@ -266,6 +286,8 @@ public class MainActivity extends FragmentActivity implements
         map.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
        // map.moveCamera(CameraUpdateFactory.newLatLng(sydney), 10);
         map.setMyLocationEnabled(true);
+        map.getUiSettings().setZoomControlsEnabled(true);
+        Toast.makeText(this,"Point",Toast.LENGTH_SHORT).show();
 
 
     }
