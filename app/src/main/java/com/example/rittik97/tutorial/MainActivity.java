@@ -3,6 +3,8 @@ package com.example.rittik97.tutorial;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Color;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -19,6 +21,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,6 +55,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 
 public class MainActivity extends FragmentActivity implements
@@ -62,10 +66,14 @@ public class MainActivity extends FragmentActivity implements
     private static final String TAG = "Logging this";
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
+    Location mLastLocation;
     private TextView tv23;
     private TextView tv2;
+    private EditText destination;
     private PolylineOptions polylineOptions=null;
     private GoogleMap map;
+    protected LatLng fromPosition;
+    private LatLng toPosition;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,9 +87,13 @@ public class MainActivity extends FragmentActivity implements
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         map = mapFragment.getMap();//getMapAsync(this)
+        setupmap();
+
+
+    }
+    private void setupmap(){
         map.setMyLocationEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
-
     }
     private class Direct extends AsyncTask{
 
@@ -91,20 +103,44 @@ public class MainActivity extends FragmentActivity implements
         }
     }
     public void startclick(View v){
+        map.clear();
+        //LatLng fromPosition = new LatLng(40.798506, -73.964577);
+        //LatLng toPosition = new LatLng(40.798204, -73.952304);//40.8079639, -73.9630146);
+       try {
+           destination= (EditText) findViewById(R.id.destination);
+           String dest = destination.getText().toString();
+           toPosition= geocoder(dest);
+           Double la=mLastLocation.getLatitude();
+           Double ln=mLastLocation.getLongitude();
+           fromPosition = new LatLng(la,ln);
 
-        LatLng fromPosition = new LatLng(40.798506, -73.964577);
-        LatLng toPosition = new LatLng(40.8079639, -73.9630146);
+       }
+        catch (Exception e) {
+            Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
+            StringWriter errors = new StringWriter();
+            e.printStackTrace(new PrintWriter(errors));
 
-        // String urltext = "http://maps.googleapis.com/maps/api/directions/xml?origin=40.798506,-73.964577&destination=(40.8079639,-73.9630146&sensor=false&units=metric&mode=driving";
+            // Show the stack trace on Logcat.
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            // Add the buttons
+            builder.setMessage(errors.toString());
+            // Set other dialog properties
+
+            // Create the AlertDialog
+            AlertDialog dialog = builder.create();
+            dialog.show();
+        }
+        //geocoder(dest);
+        // String urltext = "http://maps.googleapis.com/maps/api/directions/xml?origin=40.798506,-73.964577&destination=(40.8079639,-73.9630146&sensor=false&units=metric&mode=walking";
         String urltext = "http://maps.googleapis.com/maps/api/directions/json?"
                 + "origin=" + fromPosition.latitude + "," + fromPosition.longitude
                 + "&destination=" + toPosition.latitude + "," + toPosition.longitude
-                + "&sensor=false&units=metric&mode=" + "driving";
+                + "&sensor=false&units=metric&mode=" + "walking";
         // Replace JSON to XML to make above string return xml
 
 
 
-        //StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+       // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
         //StrictMode.setThreadPolicy(policy);
         //tv23= (TextView) findViewById(R.id.tv1);
@@ -306,11 +342,15 @@ public class MainActivity extends FragmentActivity implements
     @Override
     public void onConnected(Bundle bundle) {
 
-        Location mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
+        mLastLocation = LocationServices.FusedLocationApi.getLastLocation(
                 mGoogleApiClient);
 
-        if(mLastLocation!=null)
-            Toast.makeText(this,"Point :"+mLastLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+
+        if(mLastLocation!=null) {
+            Toast.makeText(this, "Point :" + mLastLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+            makecameragotocurrentlocation(    mLastLocation
+            );
+        }
         else
             Toast.makeText(this,"Nah", Toast.LENGTH_SHORT).show();
 
@@ -343,7 +383,8 @@ public class MainActivity extends FragmentActivity implements
     @Override
     public void onLocationChanged(Location location) {
         Location mCurrentLocation = location;
-        //Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+        makecameragotocurrentlocation(mCurrentLocation);
 
         //updateUI();
         //Date mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
@@ -359,6 +400,7 @@ public class MainActivity extends FragmentActivity implements
     @Override
     protected void onStart() {
         super.onStart();
+
         //{tv2.setText("here");}
         //tv23.setText("Started");
         try {
@@ -387,15 +429,24 @@ public class MainActivity extends FragmentActivity implements
         }
 
     }
+    public void makecameragotocurrentlocation(Location loc){
+        Location sydney = loc;
+        double lat=sydney.getLatitude();
+        double lon=sydney.getLongitude();
+        LatLng lng=new LatLng(lat,lon);
+
+        map.addMarker(new MarkerOptions().position(lng));
+        // map.moveCamera(CameraUpdateFactory.newLatLng(sydney), 10);
+        map.moveCamera(CameraUpdateFactory.newLatLng(lng));
+        map.animateCamera( CameraUpdateFactory.zoomTo( 16 ) );
+    }
     @Override
     public void onMapReady(GoogleMap map) {
         // Add a marker in Sydney, Australia, and move the camera.
-        LatLng sydney = new LatLng(-34, 151);
-        map.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-       // map.moveCamera(CameraUpdateFactory.newLatLng(sydney), 10);
+
         map.setMyLocationEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
-        Toast.makeText(this,"Point",Toast.LENGTH_SHORT).show();
+        //Toast.makeText(this,"Point",Toast.LENGTH_SHORT).show();
 
 
     }
@@ -432,6 +483,80 @@ public class MainActivity extends FragmentActivity implements
 
         return poly;
     }
+
+
+    public void reversegeocoder(){
+        Geocoder geocoder= new Geocoder(this, Locale.ENGLISH);
+
+        try {
+
+            //Place your latitude and longitude
+            List<Address> addresses = geocoder.getFromLocation(40.798204, -73.952304, 1);
+
+            if(addresses != null) {
+
+                Address fetchedAddress = addresses.get(0);
+                StringBuilder strAddress = new StringBuilder();
+
+                for(int i=0; i<fetchedAddress.getMaxAddressLineIndex(); i++) {
+                    strAddress.append(fetchedAddress.getAddressLine(i)).append("\n");
+                }
+
+                Toast.makeText(this,strAddress.toString(), Toast.LENGTH_SHORT).show();
+
+            }
+
+            else
+                Toast.makeText(this,"No address", Toast.LENGTH_SHORT).show();
+
+        }
+        catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(),"Could not get address..!", Toast.LENGTH_LONG).show();
+        }
+    }
+    public LatLng geocoder(String destination){
+        Geocoder geocoder= new Geocoder(this, Locale.ENGLISH);
+
+        try {
+
+            //Place your latitude and longitude
+            List<Address> addresses = geocoder.getFromLocationName(destination, 1);
+
+
+            if(addresses != null) {
+
+                Address address = addresses.get(0);
+
+                double lat = address.getLatitude();
+                double lng = address.getLongitude();
+
+                Toast.makeText(this,Double.toString(lat)+"  "+Double.toString(lng), Toast.LENGTH_SHORT).show();
+                LatLng returnlatlng=new LatLng(lat,lng);
+                return returnlatlng;
+            }
+
+            else
+                Toast.makeText(this,"No address", Toast.LENGTH_SHORT).show();
+
+
+        }
+        catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+            Toast.makeText(getApplicationContext(),"Could not get address..!", Toast.LENGTH_LONG).show();
+        }
+        return new LatLng(0,0);
+
+
+    }
+
+
+
+
+
+
 
     public static class adapt extends FragmentPagerAdapter{
 
