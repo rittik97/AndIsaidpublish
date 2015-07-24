@@ -8,7 +8,9 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.StrictMode;
+import android.speech.tts.TextToSpeech;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
@@ -59,7 +61,7 @@ import java.util.Locale;
 
 
 public class MainActivity extends FragmentActivity implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener,OnMapReadyCallback {
+        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener,OnMapReadyCallback,TextToSpeech.OnInitListener {
 
     private GoogleApiClient mGoogleApiClient;
 
@@ -74,6 +76,8 @@ public class MainActivity extends FragmentActivity implements
     private GoogleMap map;
     protected LatLng fromPosition;
     private LatLng toPosition;
+    private JSONObject objr;
+    TextToSpeech tts;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,6 +92,7 @@ public class MainActivity extends FragmentActivity implements
                 .findFragmentById(R.id.map);
         map = mapFragment.getMap();//getMapAsync(this)
         setupmap();
+        tts=new TextToSpeech(this,this);
 
 
     }
@@ -95,6 +100,16 @@ public class MainActivity extends FragmentActivity implements
         map.setMyLocationEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
     }
+
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+
+            int result = tts.setLanguage(Locale.US);
+        }
+
+        }
+
     private class Direct extends AsyncTask{
 
         @Override
@@ -113,6 +128,19 @@ public class MainActivity extends FragmentActivity implements
            Double la=mLastLocation.getLatitude();
            Double ln=mLastLocation.getLongitude();
            fromPosition = new LatLng(la,ln);
+
+
+           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+               tts.speak(dest,TextToSpeech.QUEUE_FLUSH,null,null );
+           }
+           else
+           {
+               HashMap<String, String> param=new HashMap<String,String>();
+               tts.speak(dest,TextToSpeech.QUEUE_FLUSH,param );
+           }
+
+
+
 
        }
         catch (Exception e) {
@@ -228,7 +256,7 @@ public class MainActivity extends FragmentActivity implements
 
             String data = "";
             URL url;
-            JSONObject objr;
+
             HttpURLConnection urlConnection;
             try{
                 // Fetching the data from web service
@@ -238,8 +266,7 @@ public class MainActivity extends FragmentActivity implements
                 urlConnection.connect();
 
                 InputStream in = new BufferedInputStream(urlConnection.getInputStream());
-                //Toast.makeText(getActivity(),"Point",Toast.LENGTH_SHORT).show();
-                //readStream(in);
+
                 BufferedReader streamReader = new BufferedReader(new InputStreamReader(in, "UTF-8"));
                 StringBuilder responseStrBuilder = new StringBuilder();
 
@@ -430,6 +457,7 @@ public class MainActivity extends FragmentActivity implements
 
     }
     public void makecameragotocurrentlocation(Location loc){
+        map.clear();
         Location sydney = loc;
         double lat=sydney.getLatitude();
         double lon=sydney.getLongitude();

@@ -7,31 +7,24 @@
     tools:context="com.example.rittik97.tutorial.MainActivity"
     android:orientation="vertical">
     <!-- activity_screen_slide.xml
-
-
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
-
     <android.support.v4.view.ViewPager
         xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/pager"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
         <android.support.v4.view.PagerTabStrip
             android:layout_width="match_parent"
             android:layout_height="50dp"
         />
-
     </android.support.v4.view.ViewPager>
-
     <TextView
         android:id="@+id/tr"
         android:layout_width="match_parent"
         android:layout_height="50dp"
         android:text="@string/hello_blank_fragment"
         android:layout_gravity="left|top" />
-
     <TextView
         android:layout_width="match_parent"
         android:layout_height="50dp"
@@ -41,7 +34,6 @@
         android:layout_below="@+id/tr"
         android:layout_alignParentStart="true"
         android:layout_marginTop="83dp" />
-
         <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
@@ -49,7 +41,6 @@
         android:id="@+id/map"
         tools:context=".MapsActivity"
         android:name="com.google.android.gms.maps.SupportMapFragment"
-
         />
         -->
     <LinearLayout
@@ -77,7 +68,7 @@
             android:onClick="startclick" />
 
 
-        </LinearLayout>
+    </LinearLayout>
 
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
