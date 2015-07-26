@@ -58,10 +58,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.Executor;
 
 
 public class MainActivity extends FragmentActivity implements
-        GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,LocationListener,OnMapReadyCallback,TextToSpeech.OnInitListener {
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,LocationListener,OnMapReadyCallback,TextToSpeech.OnInitListener ,Executor
+
+{
 
     private GoogleApiClient mGoogleApiClient;
 
@@ -112,6 +116,12 @@ public class MainActivity extends FragmentActivity implements
         }
 
         }
+
+    @Override
+    public void execute(Runnable r) {
+        r.run();
+
+    }
 
     private class Direct extends AsyncTask{
 
@@ -386,6 +396,10 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforinstructions=1;
+            if(flagforcoordinates+flagforinstructions >1){
+                execute(new navigation());
+
+            }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
             }
@@ -588,6 +602,14 @@ public class MainActivity extends FragmentActivity implements
         return new LatLng(0,0);
 
 
+    }
+    private class navigation implements Runnable{
+
+        @Override
+        public void run() {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+
+        }
     }
 
 
