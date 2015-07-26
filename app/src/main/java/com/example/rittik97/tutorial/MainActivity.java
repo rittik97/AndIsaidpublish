@@ -78,6 +78,9 @@ public class MainActivity extends FragmentActivity implements
     private LatLng toPosition;
     private JSONObject objr;
     TextToSpeech tts;
+    ArrayList instructions = null;
+    private int flagforcoordinates;
+    private int flagforinstructions;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -290,9 +293,11 @@ public class MainActivity extends FragmentActivity implements
             super.onPostExecute(result);
 
             ParserTask parserTask = new ParserTask();
+            getinstructions gi=new getinstructions();
 
             // Invokes the thread for parsing the JSON data
             parserTask.execute(result);
+            gi.execute(result);
         }
     }
 
@@ -321,6 +326,7 @@ public class MainActivity extends FragmentActivity implements
         // Executes in UI thread, after the parsing process
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
+            flagforcoordinates=1;
 
             ArrayList<LatLng> points = null;
             PolylineOptions lineOptions = null;
@@ -352,6 +358,43 @@ public class MainActivity extends FragmentActivity implements
 
             // Drawing polyline in the Google Map for the i-th route
             map.addPolyline(lineOptions);
+        }
+    }
+
+    private class getinstructions extends AsyncTask<String, Integer, List<List<HashMap<String,String>>> >{
+
+        // Parsing the data in non-ui thread
+        @Override
+        protected List<List<HashMap<String, String>>> doInBackground(String... jsonData) {
+
+            JSONObject jObject;
+
+
+            try{
+                jObject = new JSONObject(jsonData[0]);
+                DirectionsJSONParser parser = new DirectionsJSONParser();
+
+                // Starts parsing data
+                instructions = parser.parsehtml(jObject);
+            }catch(Exception e){
+                e.printStackTrace();
+            }
+            return instructions;
+        }
+
+        // Executes in UI thread, after the parsing process
+        @Override
+        protected void onPostExecute(List<List<HashMap<String, String>>> result) {
+            flagforinstructions=1;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
+            }
+            else
+            {
+                HashMap<String, String> param=new HashMap<String,String>();
+                tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,param );
+            }
+
         }
     }
 
@@ -477,39 +520,6 @@ public class MainActivity extends FragmentActivity implements
         //Toast.makeText(this,"Point",Toast.LENGTH_SHORT).show();
 
 
-    }
-    private List<LatLng> decodePoly(String encoded) {
-
-        List<LatLng> poly = new ArrayList<LatLng>();
-        int index = 0, len = encoded.length();
-        int lat = 0, lng = 0;
-
-        while (index < len) {
-            int b, shift = 0, result = 0;
-            do {
-                b = encoded.charAt(index++) - 63;
-                result |= (b & 0x1f) << shift;
-                shift += 5;
-            } while (b >= 0x20);
-            int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-            lat += dlat;
-
-            shift = 0;
-            result = 0;
-            do {
-                b = encoded.charAt(index++) - 63;
-                result |= (b & 0x1f) << shift;
-                shift += 5;
-            } while (b >= 0x20);
-            int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-            lng += dlng;
-
-            LatLng p = new LatLng((((double) lat / 1E5)),
-                    (((double) lng / 1E5)));
-            poly.add(p);
-        }
-
-        return poly;
     }
 
 

@@ -3,6 +3,8 @@ package com.example.rittik97.tutorial;
 /**
  * Created by rittik97 on 7/6/2015.
  */
+import android.text.Html;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -98,4 +100,47 @@ public class DirectionsJSONParser {
 
         return poly;
     }
+    public ArrayList parsehtml(JSONObject jObject){
+
+        ArrayList html=new ArrayList();
+        JSONArray jRoutes = null;
+        JSONArray jLegs = null;
+        JSONArray jSteps = null;
+
+        try {
+
+            jRoutes = jObject.getJSONArray("routes");
+
+            /** Traversing all routes */
+            for(int i=0;i<jRoutes.length();i++){
+                jLegs = ( (JSONObject)jRoutes.get(i)).getJSONArray("legs");
+                List path = new ArrayList<HashMap<String, String>>();
+
+                /** Traversing all legs */
+                for(int j=0;j<jLegs.length();j++){
+                    jSteps = ( (JSONObject)jLegs.get(j)).getJSONArray("steps");
+
+
+                    /** Traversing all steps */
+                    for(int k=0;k<jSteps.length();k++){
+                        String instructions = "";
+                        instructions = (String)(((JSONObject)jSteps.get(k)).get("html_instructions"));
+                        instructions=sanitizeinstructions(instructions);
+                        html.add(instructions);
+
+                    }
+
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }catch (Exception e){
+        }
+        return html;
+    }
+    protected synchronized String sanitizeinstructions(String instructions){
+        //return instructions.replaceAll("\\<.*?>","");
+        return  Html.fromHtml(instructions).toString();
+    }
+
 }
