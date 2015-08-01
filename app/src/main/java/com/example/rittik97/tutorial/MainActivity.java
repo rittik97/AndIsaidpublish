@@ -9,6 +9,8 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.StrictMode;
 import android.speech.tts.TextToSpeech;
 import android.support.v4.app.Fragment;
@@ -60,6 +62,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executor;
 
+import static android.location.Location.distanceBetween;
+
 
 public class MainActivity extends FragmentActivity implements
         GoogleApiClient.ConnectionCallbacks,
@@ -85,10 +89,12 @@ public class MainActivity extends FragmentActivity implements
     ArrayList instructions = null;
     private int flagforcoordinates;
     private int flagforinstructions;
+    ArrayList<LatLng> points;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         buildGoogleApiClient();
+        mCurrentLocation=null;
 
 
         setContentView(R.layout.activity_main);
@@ -119,7 +125,7 @@ public class MainActivity extends FragmentActivity implements
 
     @Override
     public void execute(Runnable r) {
-        r.run();
+        new Thread(r).start();
 
     }
 
@@ -151,6 +157,14 @@ public class MainActivity extends FragmentActivity implements
                HashMap<String, String> param=new HashMap<String,String>();
                tts.speak(dest,TextToSpeech.QUEUE_FLUSH,param );
            }
+
+           //if(flagforcoordinates+flagforinstructions >1)
+           {
+
+
+               //execute(new navigation());
+           }
+
 
 
 
@@ -308,6 +322,7 @@ public class MainActivity extends FragmentActivity implements
             // Invokes the thread for parsing the JSON data
             parserTask.execute(result);
             gi.execute(result);
+            startnavigation();
         }
     }
 
@@ -338,7 +353,7 @@ public class MainActivity extends FragmentActivity implements
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforcoordinates=1;
 
-            ArrayList<LatLng> points = null;
+            points=null;
             PolylineOptions lineOptions = null;
 
             // Traversing through all the routes
@@ -396,10 +411,8 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforinstructions=1;
-            if(flagforcoordinates+flagforinstructions >1){
-                execute(new navigation());
 
-            }
+
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
             }
@@ -409,9 +422,32 @@ public class MainActivity extends FragmentActivity implements
                 tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,param );
             }
 
+
         }
     }
 
+        void startnavigation(){
+            try
+            {execute(new navigation());}
+            catch (Exception e) {
+                Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
+                StringWriter errors = new StringWriter();
+                e.printStackTrace(new PrintWriter(errors));
+
+                // Show the stack trace on Logcat.
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                // Add the buttons
+                builder.setMessage(errors.toString());
+                // Set other dialog properties
+
+                // Create the AlertDialog
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+
+
+
+        }
 
 
 
@@ -605,11 +641,62 @@ public class MainActivity extends FragmentActivity implements
     }
     private class navigation implements Runnable{
 
+
+
         @Override
         public void run() {
+            Looper.prepare();
+            Handler hr=new Handler();
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
+            try {
+                while(flagforcoordinates!=1 && flagforinstructions!=1)
+                {Thread.sleep(100,0);
+                    Toast.makeText(MainActivity.this,"No address", Toast.LENGTH_SHORT).show();
+
+                }
+            }
+            catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            int n=points.size();
+            int i=0;
+            double mylat;
+            double mylong;
+            while (i<n) {
+
+                if(mCurrentLocation!=null)
+                { mylat = mCurrentLocation.getLatitude();
+                  mylong = mCurrentLocation.getLongitude();}
+                else
+                { mylat = mLastLocation.getLatitude();
+                    mylong = mLastLocation.getLongitude();}
+                float results[]=new float[3];
+
+                Location.distanceBetween(mylat,mylong
+                        ,points.get(i).latitude
+                        ,points.get(i).longitude,
+                        results
+                );
+               // if(results[0]>3)
+               {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        tts.speak(instructions.get(1).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
+                    }
+                    else
+                    {
+                        HashMap<String, String> param=new HashMap<String,String>();
+                        tts.speak("run",TextToSpeech.QUEUE_FLUSH,param );
+                    }
+
+
+                }
+
+            }
+            Looper.loop();
 
         }
+
+
     }
 
 
