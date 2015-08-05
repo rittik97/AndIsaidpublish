@@ -86,6 +86,7 @@ public class MainActivity extends FragmentActivity implements
     private LatLng toPosition;
     private JSONObject objr;
     TextToSpeech tts;
+    TextToSpeech ttsback;
     ArrayList instructions = null;
     private int flagforcoordinates;
     private int flagforinstructions;
@@ -106,6 +107,7 @@ public class MainActivity extends FragmentActivity implements
         map = mapFragment.getMap();//getMapAsync(this)
         setupmap();
         tts=new TextToSpeech(this,this);
+        ttsback=new TextToSpeech(this,this);
 
 
     }
@@ -164,6 +166,7 @@ public class MainActivity extends FragmentActivity implements
 
                //execute(new navigation());
            }
+           //startnavigation();
 
 
 
@@ -322,7 +325,7 @@ public class MainActivity extends FragmentActivity implements
             // Invokes the thread for parsing the JSON data
             parserTask.execute(result);
             gi.execute(result);
-            startnavigation();
+
         }
     }
 
@@ -352,7 +355,7 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforcoordinates=1;
-
+            Toast.makeText(getApplicationContext(),"Here, here !",Toast.LENGTH_LONG).show();
             points=null;
             PolylineOptions lineOptions = null;
 
@@ -411,6 +414,7 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforinstructions=1;
+            Toast.makeText(getApplicationContext(),"H, here !",Toast.LENGTH_LONG).show();
 
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -419,7 +423,7 @@ public class MainActivity extends FragmentActivity implements
             else
             {
                 HashMap<String, String> param=new HashMap<String,String>();
-                tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,param );
+                ttsback.speak("I just got your walking instruction",TextToSpeech.QUEUE_FLUSH,param );
             }
 
 
@@ -428,7 +432,11 @@ public class MainActivity extends FragmentActivity implements
 
         void startnavigation(){
             try
-            {execute(new navigation());}
+            {
+
+                execute(new navigation());
+                Toast.makeText(getApplicationContext(),"Here, here !",Toast.LENGTH_LONG).show();
+            }
             catch (Exception e) {
                 Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
                 StringWriter errors = new StringWriter();
@@ -651,13 +659,14 @@ public class MainActivity extends FragmentActivity implements
             try {
                 while(flagforcoordinates!=1 && flagforinstructions!=1)
                 {Thread.sleep(100,0);
-                    Toast.makeText(MainActivity.this,"No address", Toast.LENGTH_SHORT).show();
+                   // Toast.makeText(MainActivity.this,"No address", Toast.LENGTH_SHORT).show();
 
                 }
             }
             catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
             int n=points.size();
             int i=0;
             double mylat;
@@ -677,7 +686,8 @@ public class MainActivity extends FragmentActivity implements
                         ,points.get(i).longitude,
                         results
                 );
-               // if(results[0]>3)
+                /*
+               if(results[0]>3)
                {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         tts.speak(instructions.get(1).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
@@ -689,8 +699,14 @@ public class MainActivity extends FragmentActivity implements
                     }
 
 
-                }
 
+
+
+                }
+                else {
+                   Toast.makeText(MainActivity.this,"No nothing :(", Toast.LENGTH_SHORT).show();
+               }
+                */
             }
             Looper.loop();
 
