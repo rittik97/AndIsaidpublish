@@ -39,7 +39,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -73,7 +75,7 @@ public class MainActivity extends FragmentActivity implements
 
     private GoogleApiClient mGoogleApiClient;
 
-    private static final String TAG = "Logging this";
+    private static final String TAG = "Log";
     private LocationRequest mLocationRequest;
     private Location mCurrentLocation;
     Location mLastLocation;
@@ -86,11 +88,20 @@ public class MainActivity extends FragmentActivity implements
     private LatLng toPosition;
     private JSONObject objr;
     TextToSpeech tts;
-    TextToSpeech ttsback;
     ArrayList instructions = null;
-    private int flagforcoordinates;
-    private int flagforinstructions;
+    private int flagforcoordinates=0;
+    private int flagforinstructions=0;
+    private boolean navigating;
     ArrayList<LatLng> points;
+    ArrayList <LatLng> endlocations=null;
+    private Marker marker;
+    private int totalturns;
+    private int currentturn;
+    private ParserTask parserTask;
+    private getinstructions gi;
+    private endpoints endloc;
+    private int docalcs=1;
+    private boolean isnavigating;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,12 +118,12 @@ public class MainActivity extends FragmentActivity implements
         map = mapFragment.getMap();//getMapAsync(this)
         setupmap();
         tts=new TextToSpeech(this,this);
-        ttsback=new TextToSpeech(this,this);
 
 
     }
     private void setupmap(){
         map.setMyLocationEnabled(true);
+        map.setBuildingsEnabled(true);
         map.getUiSettings().setZoomControlsEnabled(true);
     }
 
@@ -123,7 +134,7 @@ public class MainActivity extends FragmentActivity implements
             int result = tts.setLanguage(Locale.US);
         }
 
-        }
+    }
 
     @Override
     public void execute(Runnable r) {
@@ -140,65 +151,39 @@ public class MainActivity extends FragmentActivity implements
     }
     public void startclick(View v){
         map.clear();
+        navigating=false;
         //LatLng fromPosition = new LatLng(40.798506, -73.964577);
         //LatLng toPosition = new LatLng(40.798204, -73.952304);//40.8079639, -73.9630146);
-       try {
-           destination= (EditText) findViewById(R.id.destination);
-           String dest = destination.getText().toString();
-           toPosition= geocoder(dest);
-           Double la=mLastLocation.getLatitude();
-           Double ln=mLastLocation.getLongitude();
-           fromPosition = new LatLng(la,ln);
-
-
-           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-               tts.speak(dest,TextToSpeech.QUEUE_FLUSH,null,null );
-           }
-           else
-           {
-               HashMap<String, String> param=new HashMap<String,String>();
-               tts.speak(dest,TextToSpeech.QUEUE_FLUSH,param );
-           }
-
-           //if(flagforcoordinates+flagforinstructions >1)
-           {
-
-
-               //execute(new navigation());
-           }
-           //startnavigation();
+        try {
+            destination= (EditText) findViewById(R.id.destination);
+            String dest = destination.getText().toString();
 
 
 
+            //talkthis(dest);
 
+            toPosition= geocoder(dest);
+            if(toPosition.latitude==0 && toPosition.longitude==0) return;
+            Double la=mLastLocation.getLatitude();
+            Double ln=mLastLocation.getLongitude();
+            fromPosition = new LatLng(la,ln);
 
-       }
+        }
         catch (Exception e) {
             Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-
-            // Show the stack trace on Logcat.
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            // Add the buttons
-            builder.setMessage(errors.toString());
-            // Set other dialog properties
-
-            // Create the AlertDialog
-            AlertDialog dialog = builder.create();
-            dialog.show();
+            alertexception(e);
         }
         //geocoder(dest);
-        // String urltext = "http://maps.googleapis.com/maps/api/directions/xml?origin=40.798506,-73.964577&destination=(40.8079639,-73.9630146&sensor=false&units=metric&mode=walking";
+        // String urltext = "http://maps.googleapis.com/maps/api/directions/json?origin=40.798506,-73.964577&destination=(40.8079639,-73.9630146&sensor=false&units=metric&mode=walking";
         String urltext = "http://maps.googleapis.com/maps/api/directions/json?"
-                + "origin=" + fromPosition.latitude + "," + fromPosition.longitude
-                + "&destination=" + toPosition.latitude + "," + toPosition.longitude
-                + "&sensor=false&units=metric&mode=" + "walking";
+              + "origin=" + fromPosition.latitude + "," + fromPosition.longitude
+              + "&destination=" + toPosition.latitude + "," + toPosition.longitude
+              + "&sensor=false&units=metric&mode=" + "walking";
         // Replace JSON to XML to make above string return xml
 
 
 
-       // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        // StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
 
         //StrictMode.setThreadPolicy(policy);
         //tv23= (TextView) findViewById(R.id.tv1);
@@ -222,29 +207,21 @@ public class MainActivity extends FragmentActivity implements
             // JSONObject jsonArray=objr.getJSONObject("overview_polyline");
             //String points=jsonArray.getJSONObject(0.getString("points");
             Toast.makeText(this,encodedString,Toast.LENGTH_LONG).show();
-
             //tv23.setText(objr.toString());
             List<LatLng> list = decodePoly(encodedString);
             Toast.makeText(this,list.toString(),Toast.LENGTH_LONG).show();
             ArrayList<LatLng> points = new ArrayList<LatLng>();
-
             for(int i=0;i<list.size();i++)
             {
-
                 try{
-
                     double lat = (list.get(i).latitude);
                     double lng = (list.get(i).longitude);
                     LatLng position = new LatLng(lat, lng);
-
                     points.add(position);}
                 catch(Exception e){Toast.makeText(this,"Chut",Toast.LENGTH_LONG).show();}
-
             }
             polylineOptions.addAll(points);
             map.addPolyline(polylineOptions);
-
-
           */
         }
 
@@ -257,21 +234,13 @@ public class MainActivity extends FragmentActivity implements
             Log.e("DEBUG: ", e.toString());
         }
         */
+
         catch (Exception e) {
             Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-
-            // Show the stack trace on Logcat.
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            // Add the buttons
-            builder.setMessage(errors.toString());
-            // Set other dialog properties
-
-            // Create the AlertDialog
-            AlertDialog dialog = builder.create();
-            dialog.show();
+            alertexception(e);
         }
+        //while (parserTask.getStatus().equals(AsyncTask.Status.FINISHED) ==false && gi.getStatus().equals(AsyncTask.Status.FINISHED)==false)
+
     }
 
 
@@ -319,12 +288,14 @@ public class MainActivity extends FragmentActivity implements
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
 
-            ParserTask parserTask = new ParserTask();
-            getinstructions gi=new getinstructions();
+            parserTask = new ParserTask();
+            gi=new getinstructions();
+            endloc=new endpoints();
 
             // Invokes the thread for parsing the JSON data
             parserTask.execute(result);
             gi.execute(result);
+            endloc.execute(result);
 
         }
     }
@@ -355,7 +326,7 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforcoordinates=1;
-            Toast.makeText(getApplicationContext(),"Here, here !",Toast.LENGTH_LONG).show();
+
             points=null;
             PolylineOptions lineOptions = null;
 
@@ -385,6 +356,7 @@ public class MainActivity extends FragmentActivity implements
             }
 
             // Drawing polyline in the Google Map for the i-th route
+            //Toast.makeText(getApplicationContext(),points.toString(), Toast.LENGTH_SHORT).show();
             map.addPolyline(lineOptions);
         }
     }
@@ -414,48 +386,134 @@ public class MainActivity extends FragmentActivity implements
         @Override
         protected void onPostExecute(List<List<HashMap<String, String>>> result) {
             flagforinstructions=1;
-            Toast.makeText(getApplicationContext(),"H, here !",Toast.LENGTH_LONG).show();
 
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                tts.speak(instructions.get(0).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
+
+
+
+
+
+
+
+
+
+
+        }
+    }
+    private class endpoints extends AsyncTask<String, Integer, ArrayList >{
+
+        // Parsing the data in non-ui thread
+        @Override
+        protected ArrayList doInBackground(String... jsonData) {
+
+            JSONObject jObject;
+
+
+            try{
+                jObject = new JSONObject(jsonData[0]);
+                DirectionsJSONParser parser = new DirectionsJSONParser();
+
+                // Starts parsing data
+                endlocations = parser.parseendpoints(jObject);
+            }catch(Exception e){
+                e.printStackTrace();
             }
-            else
-            {
-                HashMap<String, String> param=new HashMap<String,String>();
-                ttsback.speak("I just got your walking instruction",TextToSpeech.QUEUE_FLUSH,param );
-            }
+            return endlocations;
+        }
+
+        // Executes in UI thread, after the parsing process
+        @Override
+        protected void onPostExecute(ArrayList result) {
+
+            totalturns=endlocations.size();
+            currentturn=0;
+            navigating=true;
+            for(int i=0;i<totalturns;i++)
+            map.addMarker(new MarkerOptions()
+                    .position(new LatLng(endlocations.get(i).latitude,
+                            endlocations.get(i).longitude))
+                    .title("Turn "+i));
+
+            talkthis(instructions.get(currentturn).toString());
 
 
         }
     }
 
-        void startnavigation(){
-            try
-            {
-
-                execute(new navigation());
-                Toast.makeText(getApplicationContext(),"Here, here !",Toast.LENGTH_LONG).show();
+    void startnavigation(){
+        try {
+            while (parserTask.getStatus().equals(AsyncTask.Status.FINISHED) == false && gi.getStatus().equals(AsyncTask.Status.FINISHED) == false) {
             }
-            catch (Exception e) {
-                Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
-                StringWriter errors = new StringWriter();
-                e.printStackTrace(new PrintWriter(errors));
+            //Toast.makeText(this,points.size(), Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this,instructions.size(), Toast.LENGTH_SHORT).show();
+            Log.i(TAG, String.valueOf(instructions.size()));
+            int n = points.size();
+            int i = 0;
+            double mylat;
+            double mylong;
+            boolean looper=true;
+            while (i < n) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    tts.speak(instructions.get(i).toString(), TextToSpeech.QUEUE_ADD, null, null);
+                } else {
+                    HashMap<String, String> param = new HashMap<String, String>();
+                    tts.speak(instructions.get(i).toString(), TextToSpeech.QUEUE_ADD, param);
+                }
+                while(looper) {
+                    if (mCurrentLocation != null) {
+                        mylat = mCurrentLocation.getLatitude();
+                        mylong = mCurrentLocation.getLongitude();
+                    } else {
+                        mylat = mLastLocation.getLatitude();
+                        mylong = mLastLocation.getLongitude();
+                    }
+                    float results[] = new float[3];
 
-                // Show the stack trace on Logcat.
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                // Add the buttons
-                builder.setMessage(errors.toString());
-                // Set other dialog properties
+                    Location.distanceBetween(mylat, mylong
+                            , points.get(i).latitude
+                            , points.get(i).longitude,
+                            results
+                    );
+                    Log.i(TAG, String.valueOf(results[0]));
+                    if (results[0] > 3) {
+                        continue;
+                    }
+                    else
+                    {
 
-                // Create the AlertDialog
-                AlertDialog dialog = builder.create();
-                dialog.show();
+                        looper=false;
+
+
+                    }
+                }
+                //execute(new navigation());
+                i++;
             }
-
-
+        }
+        catch (Exception e) {
+            Log.e(TAG,"ERRRRRRRRRRRRRRR", e);
+            alertexception(e);
 
         }
+
+
+
+    }
+
+    public void alertexception(Exception e){
+        StringWriter errors = new StringWriter();
+        e.printStackTrace(new PrintWriter(errors));
+
+        // Show the stack trace on Logcat.
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        // Add the buttons
+        builder.setMessage(errors.toString());
+        // Set other dialog properties
+
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
 
 
 
@@ -475,12 +533,12 @@ public class MainActivity extends FragmentActivity implements
 
 
         if(mLastLocation!=null) {
-            Toast.makeText(this, "Point :" + mLastLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+           // Toast.makeText(this, "Point :" + mLastLocation.getLatitude(), Toast.LENGTH_SHORT).show();
             makecameragotocurrentlocation(    mLastLocation
             );
         }
         else
-            Toast.makeText(this,"Nah", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,"Can't retrieve Location", Toast.LENGTH_SHORT).show();
 
 
         createLocationRequest();
@@ -502,7 +560,7 @@ public class MainActivity extends FragmentActivity implements
     }
     protected void createLocationRequest() {
         mLocationRequest = new LocationRequest();
-        mLocationRequest.setInterval(3000);
+        mLocationRequest.setInterval(2000);
         mLocationRequest.setFastestInterval(1000);
         mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
@@ -511,11 +569,71 @@ public class MainActivity extends FragmentActivity implements
     @Override
     public void onLocationChanged(Location location) {
         Location mCurrentLocation = location;
-        Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
+        mLastLocation=mCurrentLocation;
+        //Toast.makeText(this,"Point2 :"+mCurrentLocation.getLatitude(), Toast.LENGTH_SHORT).show();
         makecameragotocurrentlocation(mCurrentLocation);
 
         //updateUI();
         //Date mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+        if(navigating==true && parserTask.getStatus().equals(AsyncTask.Status.FINISHED) == true
+                && gi.getStatus().equals(AsyncTask.Status.FINISHED) == true
+                && endloc.getStatus().equals(AsyncTask.Status.FINISHED) == true){
+            double mylat;
+            double mylong;
+            isnavigating=true;
+            /*
+            int turns[]=new int[endlocations.size()];
+            if(docalcs==1){
+                docalcs=0;
+                int whereisloop=0;
+                float min=10000;
+                float results[]=new float[3];
+                for(int i=0;i<endlocations.size();i++){
+                    for(int j=whereisloop;j<points.size();j++){
+                        Location.distanceBetween(points.get(j).latitude,points.get(j).longitude,
+                        endlocations.get(i).latitude,endlocations.get(i).longitude,results
+                                );
+                        if(results[0]<min){
+                            min=results[0];
+                        }
+                        if(min<10){
+                            turns[i]=j;
+                            whereisloop=j;
+                            break;
+                        }
+
+                    }
+                }
+
+                Toast.makeText(this,turns.toString(), Toast.LENGTH_SHORT).show();
+
+
+            }
+            */
+
+             if (mCurrentLocation != null) {
+             mylat = mCurrentLocation.getLatitude();
+             mylong = mCurrentLocation.getLongitude();
+                    } else {
+                        mylat = mLastLocation.getLatitude();
+                        mylong = mLastLocation.getLongitude();
+                    }
+                    float results[] = new float[3];
+
+                    Location.distanceBetween(mylat, mylong
+                            , endlocations.get(currentturn).latitude
+                            , endlocations.get(currentturn).longitude,
+                            results
+                    );
+
+             if(results[0]<10){currentturn++;
+             talkthis(instructions.get(currentturn).toString());
+             }
+             if(currentturn==totalturns){//You have reached destination
+             navigating=false;
+              }
+
+        }
 
     }
     private void updateUI() {
@@ -535,39 +653,42 @@ public class MainActivity extends FragmentActivity implements
             mGoogleApiClient.connect();
             //if(mGoogleApiClient.isConnected()) {
             //createLocationRequest();
-           // startLocationUpdates();
+            // startLocationUpdates();
 
             //}else
             //  Toast.makeText(this,"Point", Toast.LENGTH_SHORT).show();
 
         }catch (Exception e)
         {
-            StringWriter errors = new StringWriter();
-            e.printStackTrace(new PrintWriter(errors));
-
-            // Show the stack trace on Logcat.
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            // Add the buttons
-            builder.setMessage(errors.toString());
-            // Set other dialog properties
-
-            // Create the AlertDialog
-            AlertDialog dialog = builder.create();
-            dialog.show();
+            alertexception(e);
         }
 
     }
     public void makecameragotocurrentlocation(Location loc){
-        map.clear();
+        //map.clear();
         Location sydney = loc;
         double lat=sydney.getLatitude();
-        double lon=sydney.getLongitude();
+        double lon = sydney.getLongitude();
         LatLng lng=new LatLng(lat,lon);
 
         map.addMarker(new MarkerOptions().position(lng));
         // map.moveCamera(CameraUpdateFactory.newLatLng(sydney), 10);
         map.moveCamera(CameraUpdateFactory.newLatLng(lng));
-        map.animateCamera( CameraUpdateFactory.zoomTo( 16 ) );
+        if(isnavigating){
+            Location target=new Location("");
+            target.setLatitude(endlocations.get(currentturn + 1).latitude);
+            target.setLongitude(endlocations.get(currentturn + 1).longitude);
+            CameraPosition cameraPosition =
+                    new CameraPosition.Builder()
+                            .target(endlocations.get(currentturn + 1))
+                            .bearing(mCurrentLocation.bearingTo(target))
+                            .tilt(90)
+                            .zoom(map.getCameraPosition().zoom)
+                            .build();
+        }
+            else{
+            map.animateCamera(CameraUpdateFactory.zoomTo(16));
+        }
     }
     @Override
     public void onMapReady(GoogleMap map) {
@@ -617,25 +738,56 @@ public class MainActivity extends FragmentActivity implements
 
         try {
 
+            //talkthis(String.valueOf(mLastLocation.getLatitude()));
+            //talkthis(String.valueOf(mLastLocation.getLatitude()-50/70));
             //Place your latitude and longitude
-            List<Address> addresses = geocoder.getFromLocationName(destination, 1);
+            List<Address> addresses = geocoder.getFromLocationName(destination, 6
+                    , mLastLocation.getLatitude() - 0.015, mLastLocation.getLongitude() -0.009 , mLastLocation.getLatitude() + 0.015, mLastLocation.getLongitude() + 0.009
+            );
+            if(!addresses.isEmpty() && addresses!=null) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                // Add the buttons
+                builder.setMessage(addresses.toString());
+                // Set other dialog properties
+
+                // Create the AlertDialog
+                AlertDialog dialog = builder.create();
+                dialog.show();      
+                int distances[] = new int[addresses.size()];
+                for (int i = 0; i < addresses.size(); i++) {
+                    float result[] = new float[3];
+                    Location.distanceBetween(mLastLocation.getLatitude(), mLastLocation.getLongitude()
+                            , addresses.get(i).getLatitude(), addresses.get(i).getLongitude(), result
+                    );
+                    distances[i] = (int) result[0];
+                }
+                talkthis("I found " + String.valueOf(addresses.size()) + "options");
+                //if(distances[0]null)
+                int temp1 = 0;
+                for (int i = 0; i < distances.length; i++) {
+                    if (distances[i] < temp1) {
+                        temp1 = i;
+                    }
 
 
-            if(addresses != null) {
+                }
+                talkthis("The closest one is" + distances[temp1] + "meters away, I'll take you there");
 
-                Address address = addresses.get(0);
 
-                double lat = address.getLatitude();
-                double lng = address.getLongitude();
+                if (addresses != null) {
 
-                Toast.makeText(this,Double.toString(lat)+"  "+Double.toString(lng), Toast.LENGTH_SHORT).show();
-                LatLng returnlatlng=new LatLng(lat,lng);
-                return returnlatlng;
-            }
+                    Address address = addresses.get(temp1);
 
-            else
-                Toast.makeText(this,"No address", Toast.LENGTH_SHORT).show();
+                    double lat = address.getLatitude();
+                    double lng = address.getLongitude();
 
+                    Toast.makeText(this, Double.toString(lat) + "  " + Double.toString(lng), Toast.LENGTH_SHORT).show();
+                    LatLng returnlatlng = new LatLng(lat, lng);
+                    return returnlatlng;
+                }
+
+            }else {Toast.makeText(this, "No address", Toast.LENGTH_SHORT).show();
+                talkthis("Couldn't find what you were looking for");}
 
         }
         catch (IOException e) {
@@ -657,15 +809,11 @@ public class MainActivity extends FragmentActivity implements
             Handler hr=new Handler();
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND);
             try {
-                while(flagforcoordinates!=1 && flagforinstructions!=1)
-                {Thread.sleep(100,0);
-                   // Toast.makeText(MainActivity.this,"No address", Toast.LENGTH_SHORT).show();
+               /* while(flagforcoordinates!=1 && flagforinstructions!=1)
+                {Thread.sleep(1000,0);
+                    Toast.makeText(MainActivity.this,"No address", Toast.LENGTH_SHORT).show();
 
-                }
-            }
-            catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+                }*/
 
             int n=points.size();
             int i=0;
@@ -675,7 +823,7 @@ public class MainActivity extends FragmentActivity implements
 
                 if(mCurrentLocation!=null)
                 { mylat = mCurrentLocation.getLatitude();
-                  mylong = mCurrentLocation.getLongitude();}
+                    mylong = mCurrentLocation.getLongitude();}
                 else
                 { mylat = mLastLocation.getLatitude();
                     mylong = mLastLocation.getLongitude();}
@@ -686,32 +834,33 @@ public class MainActivity extends FragmentActivity implements
                         ,points.get(i).longitude,
                         results
                 );
-                /*
-               if(results[0]>3)
-               {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        tts.speak(instructions.get(1).toString(),TextToSpeech.QUEUE_FLUSH,null,null );
-                    }
-                    else
-                    {
-                        HashMap<String, String> param=new HashMap<String,String>();
-                        tts.speak("run",TextToSpeech.QUEUE_FLUSH,param );
-                    }
-
-
+                // if(results[0]>3)
+                {
 
 
 
                 }
-                else {
-                   Toast.makeText(MainActivity.this,"No nothing :(", Toast.LENGTH_SHORT).show();
-               }
-                */
+
             }
             Looper.loop();
+            }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
 
         }
 
+
+    }
+    public void talkthis(String s){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tts.speak(s,TextToSpeech.QUEUE_ADD,null,null );
+        }
+        else
+        {
+            HashMap<String, String> param=new HashMap<String,String>();
+            tts.speak(s,TextToSpeech.QUEUE_ADD,param );
+        }
 
     }
 
@@ -723,36 +872,36 @@ public class MainActivity extends FragmentActivity implements
 
     public static class adapt extends FragmentPagerAdapter{
 
-            public adapt(FragmentManager fm) {
-                super(fm);
-            }
+        public adapt(FragmentManager fm) {
+            super(fm);
+        }
 
-            @Override
-            public Fragment getItem(int position) {
-                if(position == 0)
-                    return new Directions(); //NewFragment();
-                else if (position==1)
-                    return new Second();
-                else
-                    return new Directions();//
+        @Override
+        public Fragment getItem(int position) {
+            if(position == 0)
+                return new Directions(); //NewFragment();
+            else if (position==1)
+                return new Second();
+            else
+                return new Directions();//
 
 
 
-            }
+        }
 
-            @Override
-            public int getCount() {
-                return 2;
-            }
+        @Override
+        public int getCount() {
+            return 2;
+        }
 
         @Override
         public CharSequence getPageTitle(int position) {
-          if(position == 0)
-            return "Directions";
-         else if(position == 1)
-           return "Map";
-         else
-              return "Directions";
+            if(position == 0)
+                return "Directions";
+            else if(position == 1)
+                return "Map";
+            else
+                return "Directions";
         }
 
     }

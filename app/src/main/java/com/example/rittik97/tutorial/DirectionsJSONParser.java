@@ -143,4 +143,51 @@ public class DirectionsJSONParser {
         return  Html.fromHtml(instructions).toString();
     }
 
+    public ArrayList parseendpoints(JSONObject jObject){
+
+        ArrayList endlocations=new ArrayList();
+        JSONArray jRoutes = null;
+        JSONArray jLegs = null;
+        JSONArray jSteps = null;
+        JSONObject temp;
+
+        try {
+
+            jRoutes = jObject.getJSONArray("routes");
+
+            /** Traversing all routes */
+            for(int i=0;i<jRoutes.length();i++){
+                jLegs = ( (JSONObject)jRoutes.get(i)).getJSONArray("legs");
+                List path = new ArrayList<HashMap<String, String>>();
+
+                /** Traversing all legs */
+                for(int j=0;j<jLegs.length();j++){
+                    jSteps = ( (JSONObject)jLegs.get(j)).getJSONArray("steps");
+
+
+                    /** Traversing all steps */
+                    for(int k=0;k<jSteps.length();k++){
+                        String lat = "";
+                        String lng = "";
+                        //lat = (String)((JSONObject)((JSONObject)jSteps.get(k)).get("end_location")).get("lat");
+                        //lng = (String)((JSONObject)((JSONObject)jSteps.get(k)).get("end_location")).get("lng");
+                        temp=jSteps.getJSONObject(k);
+                        temp=temp.getJSONObject("end_location");
+                        lat=temp.getString("lat");
+                        lng=temp.getString("lng");
+
+                        endlocations.add(new LatLng(Double.parseDouble(lat),Double.parseDouble(lng)));
+                        //endlocations.add(lat);
+
+                    }
+
+                }
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }catch (Exception e){
+        }
+        return endlocations;
+    }
+
 }
